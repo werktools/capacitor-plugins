@@ -1,0 +1,96 @@
+import Foundation
+import CoreLocation
+import Combine
+
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+
+    private let locationManager = CLLocationManager()
+
+    @Published var locationStatus: CLAuthorizationStatus?
+    @Published var lastLocation: CLLocation?
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+    
+    var statusString: String {
+        guard let status = locationStatus else {
+            return "unknown"
+        }
+        
+        switch status {
+            case .notDetermined: return "notDetermined"
+            case .authorizedWhenInUse: return "authorizedWhenInUse"
+            case .authorizedAlways: return "authorizedAlways"
+            case .restricted: return "restricted"
+            case .denied: return "denied"
+            default: return "unknown"
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        locationStatus = status
+        print(#function, statusString)
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        lastLocation = location
+        print(#function, location)
+    }
+    
+    func createLocationMetadata() -> Dictionary<String, Any> {
+        
+        var gpsDictionary = Dictionary<String, Any>()
+        
+        guard CLLocationManager.authorizationStatus() == .authorizedWhenInUse else {return gpsDictionary}
+        
+        if let location = locationManager.location {
+            var latitude = location.coordinate.latitude
+            var longitude = location.coordinate.longitude
+            var altitude = location.altitude
+            var latitudeRef = "N"
+            var longitudeRef = "E"
+            var altitudeRef = 0
+
+            if latitude < 0.0 {
+                latitude = -latitude
+                latitudeRef = "S"
+            }
+
+            if longitude < 0.0 {
+                longitude = -longitude
+                longitudeRef = "W"
+            }
+
+            if altitude < 0.0 {
+                altitude = -altitude
+                altitudeRef = 1
+            }
+
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy:MM:dd"
+            gpsDictionary[kCGImagePropertyGPSDateStamp as String] = formatter.string(from:location.timestamp)
+            formatter.dateFormat = "HH:mm:ss"
+            gpsDictionary[kCGImagePropertyGPSTimeStamp as String] = formatter.string(from:location.timestamp)
+            gpsDictionary[kCGImagePropertyGPSLatitudeRef as String] = latitudeRef
+            gpsDictionary[kCGImagePropertyGPSLatitude as String] = latitude
+            gpsDictionary[kCGImagePropertyGPSLongitudeRef as String] = longitudeRef
+            gpsDictionary[kCGImagePropertyGPSLongitude as String] = longitude
+            gpsDictionary[kCGImagePropertyGPSDOP as String] = location.horizontalAccuracy
+            gpsDictionary[kCGImagePropertyGPSAltitudeRef as String] = altitudeRef
+            gpsDictionary[kCGImagePropertyGPSAltitude as String] = altitude
+
+            if let heading = locationManager.heading {
+                gpsDictionary[kCGImagePropertyGPSImgDirectionRef as String] = "T"
+                gpsDictionary[kCGImagePropertyGPSImgDirection as String] = heading.trueHeading
+            }
+        }
+        
+        return gpsDictionary
+    }
+}
