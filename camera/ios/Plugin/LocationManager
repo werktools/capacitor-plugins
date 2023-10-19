@@ -13,8 +13,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
     }
     
     var statusString: String {
@@ -23,33 +21,50 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
         
         switch status {
-            case .notDetermined: return "notDetermined"
-            case .authorizedWhenInUse: return "authorizedWhenInUse"
-            case .authorizedAlways: return "authorizedAlways"
-            case .restricted: return "restricted"
-            case .denied: return "denied"
-            default: return "unknown"
+        case .notDetermined: return "notDetermined"
+        case .authorizedWhenInUse: return "authorizedWhenInUse"
+        case .authorizedAlways: return "authorizedAlways"
+        case .restricted: return "restricted"
+        case .denied: return "denied"
+        default: return "unknown"
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         locationStatus = status
         print(#function, statusString)
+
+        switch status {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .restricted:
+            print("Sorry, restricted")
+            // Optional: Offer to take user to app's settings screen
+        case .denied:
+            print("Sorry, denied")
+            // Optional: Offer to take user to app's settings screen
+        case .authorizedAlways, .authorizedWhenInUse:
+            locationManager.startUpdatingLocation()
+        @unknown default:
+            print("Unknown status")
+        }
     }
-    
+ 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         lastLocation = location
         print(#function, location)
     }
-    
+
     func createLocationMetadata() -> Dictionary<String, Any> {
         
         var gpsDictionary = Dictionary<String, Any>()
         
-        guard CLLocationManager.authorizationStatus() == .authorizedWhenInUse else {return gpsDictionary}
+        guard ( CLLocationManager.authorizationStatus() == .authorizedWhenInUse
+                || CLLocationManager.authorizationStatus() == .authorizedAlways )
+                else { return gpsDictionary }
         
-        if let location = locationManager.location {
+        if let location = lastLocation {
             var latitude = location.coordinate.latitude
             var longitude = location.coordinate.longitude
             var altitude = location.altitude
