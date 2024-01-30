@@ -14,46 +14,28 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
     }
-    
-    var statusString: String {
-        guard let status = locationStatus else {
-            return "unknown"
-        }
-        
-        switch status {
-        case .notDetermined: return "notDetermined"
-        case .authorizedWhenInUse: return "authorizedWhenInUse"
-        case .authorizedAlways: return "authorizedAlways"
-        case .restricted: return "restricted"
-        case .denied: return "denied"
-        default: return "unknown"
-        }
-    }
 
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         locationStatus = status
-        print(#function, statusString)
 
         switch status {
         case .notDetermined:
+            print("no location data - permission notDetermined")
             locationManager.requestWhenInUseAuthorization()
         case .restricted:
-            print("Sorry, restricted")
-            // Optional: Offer to take user to app's settings screen
+            print("no location data - permission restricted")
         case .denied:
-            print("Sorry, denied")
-            // Optional: Offer to take user to app's settings screen
+            print("no location data - permission denied")
         case .authorizedAlways, .authorizedWhenInUse:
             locationManager.startUpdatingLocation()
         @unknown default:
-            print("Unknown status")
+            print("no location data - unknown status")
         }
     }
  
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         lastLocation = location
-        print(#function, location)
     }
 
     func createLocationMetadata() -> Dictionary<String, Any> {
