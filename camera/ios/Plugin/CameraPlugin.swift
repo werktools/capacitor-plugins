@@ -10,6 +10,7 @@ public class CameraPlugin: CAPPlugin {
     private let defaultSource = CameraSource.prompt
     private let defaultDirection = CameraDirection.rear
     private var multiple = false
+    private let locationManager = LocationManager()
 
     private var imageCounter = 0
 
@@ -546,6 +547,7 @@ private extension CameraPlugin {
         // get the image's metadata from the picker or from the photo album
         if let photoMetadata = info[UIImagePickerController.InfoKey.mediaMetadata] as? [String: Any] {
             metadata = photoMetadata
+            metadata["{GPS}"] = locationManager.createLocationMetadata()
         } else {
             flags = flags.union([.gallery])
         }
