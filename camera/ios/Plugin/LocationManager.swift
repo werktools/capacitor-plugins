@@ -21,7 +21,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         switch status {
         case .notDetermined:
             print("no location data - permission notDetermined")
-            locationManager.requestWhenInUseAuthorization()
         case .restricted:
             print("no location data - permission restricted")
         case .denied:
